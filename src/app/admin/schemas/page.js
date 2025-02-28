@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-const API_URL = "/api/schemas"; // API Route
+const API_URL = "/api/schemas"; // Backend API Route
 
 export default function ManageSchemas() {
   const [schemas, setSchemas] = useState([]);
@@ -11,14 +11,15 @@ export default function ManageSchemas() {
     name: "",
     description: "",
     headers: [],
-    queryParams: [],
-    requestBody: [],
-    responseBody: [],
-    responseCodes: [],
+    query_params: [],
+    request_body: [],
+    response_body: [],
+    response_codes: [],
   });
-  const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [editId, setEditId] = useState(null); // Track if editing
 
-  // ✅ Fetch all schemas
+  // ✅ Fetch all schemas from the database
   useEffect(() => {
     fetchSchemas();
   }, []);
@@ -34,36 +35,55 @@ export default function ManageSchemas() {
 
   // ✅ Handle input changes for top-level fields
   const handleInputChange = (field, value) => {
-    setFormData((prevState) => ({ ...prevState, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  // ✅ Handle input changes for array fields
+  // ✅ Handle changes in dynamic array fields
   const handleArrayFieldChange = (field, index, key, value) => {
-    const updatedField = [...formData[field]];
-    updatedField[index][key] = value;
-    setFormData((prevState) => ({ ...prevState, [field]: updatedField }));
+    const updatedArray = [...formData[field]];
+    updatedArray[index][key] = value;
+    setFormData((prev) => ({ ...prev, [field]: updatedArray }));
   };
 
-  // ✅ Add a new field to array fields
+  // ✅ Add a new field to dynamic arrays
   const addArrayField = (field) => {
-    const newField =
-      field === "responseCodes"
-        ? { code: "", description: "" }
-        : { name: "", type: "", description: "" };
-
-    setFormData((prevState) => ({
-      ...prevState,
-      [field]: [...prevState[field], newField],
-    }));
+    const newField = { name: "", type: "", description: "" };
+    setFormData((prev) => ({ ...prev, [field]: [...prev[field], newField] }));
   };
 
-  // ✅ Remove a field from array fields
+  // ✅ Remove a field from dynamic arrays
   const removeArrayField = (field, index) => {
-    const updatedField = formData[field].filter((_, i) => i !== index);
-    setFormData((prevState) => ({ ...prevState, [field]: updatedField }));
+    const updatedArray = formData[field].filter((_, i) => i !== index);
+    setFormData((prev) => ({ ...prev, [field]: updatedArray }));
   };
 
-  // ✅ Fetch specific schema by ID for editing
+  // ✅ Handle submitting new schema OR updating existing one
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (editId) {
+        // ✅ Update existing schema
+        await axios.put(API_URL, { id: editId, ...formData });
+        alert("✅ Schema Updated Successfully!");
+      } else {
+        // ✅ Add new schema
+        await axios.post(API_URL, formData);
+        alert("✅ Schema Added Successfully!");
+      }
+
+      fetchSchemas();
+      resetForm();
+    } catch (error) {
+      console.error("❌ Error saving schema:", error);
+      alert("❌ Failed to save schema.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Load schema data into form for editing
   const handleEdit = async (id) => {
     try {
       const response = await axios.get(`${API_URL}?id=${id}`);
@@ -73,47 +93,16 @@ export default function ManageSchemas() {
         name: schemaData.name || "",
         description: schemaData.description || "",
         headers: schemaData.headers || [],
-        queryParams: schemaData.query_params || [],
-        requestBody: schemaData.request_body || [],
-        responseBody: schemaData.response_body || [],
-        responseCodes: schemaData.response_codes || [],
+        query_params: schemaData.query_params || [],
+        request_body: schemaData.request_body || [],
+        response_body: schemaData.response_body || [],
+        response_codes: schemaData.response_codes || [],
       });
 
       setEditId(id);
     } catch (error) {
       console.error("❌ Error fetching schema:", error);
       alert("❌ Failed to load schema.");
-    }
-  };
-
-  // ✅ Add a new schema
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      await axios.post(API_URL, formData);
-      alert("✅ Schema Added Successfully!");
-      fetchSchemas();
-      resetForm();
-    } catch (error) {
-      console.error("❌ Error adding schema:", error);
-      alert("❌ Failed to add schema.");
-    }
-  };
-
-  // ✅ Update existing schema
-  const handleUpdate = async (e) => {
-    e.preventDefault();
-    if (!editId) return alert("❌ No schema selected for editing.");
-
-    try {
-      await axios.put(API_URL, { id: editId, ...formData });
-      alert("✅ Schema Updated Successfully!");
-      fetchSchemas();
-      resetForm();
-    } catch (error) {
-      console.error("❌ Error updating schema:", error);
-      alert("❌ Failed to update schema.");
     }
   };
 
@@ -125,22 +114,23 @@ export default function ManageSchemas() {
       await axios.delete(API_URL, { data: { id } });
       alert("✅ Schema Deleted Successfully!");
       fetchSchemas();
+      resetForm();
     } catch (error) {
       console.error("❌ Error deleting schema:", error);
       alert("❌ Failed to delete schema.");
     }
   };
 
-  // ✅ Reset Form for adding a new schema
+  // ✅ Reset Form for new schema
   const resetForm = () => {
     setFormData({
       name: "",
       description: "",
       headers: [],
-      queryParams: [],
-      requestBody: [],
-      responseBody: [],
-      responseCodes: [],
+      query_params: [],
+      request_body: [],
+      response_body: [],
+      response_codes: [],
     });
     setEditId(null);
   };
@@ -148,22 +138,21 @@ export default function ManageSchemas() {
   return (
     <div className="p-6 bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">{editId ? "Edit Schema" : "Define Schema"}</h1>
+        <h1 className="text-2xl font-bold">{editId ? "Edit Schema" : "Add New Schema"}</h1>
         <button onClick={resetForm} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-          Add New Schema
+          {editId ? "Cancel Edit" : "Reset Form"}
         </button>
       </div>
 
       {/* ✅ Schema Form */}
-      <form onSubmit={editId ? handleUpdate : handleSubmit} className="grid gap-6 bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
-        <h2 className="text-xl mb-4">{editId ? "Edit Schema" : "Add New Schema"}</h2>
+      <form onSubmit={handleSubmit} className="grid gap-6 bg-white dark:bg-gray-800 p-4 rounded shadow mb-6">
         <div>
           <label className="block text-sm font-medium">Schema Name</label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => handleInputChange("name", e.target.value)}
-            className="w-full p-3 border rounded bg-gray-100 dark:bg-gray-700 dark:text-white"
+            className="w-full p-3 border rounded dark:bg-gray-700"
             required
           />
         </div>
@@ -173,47 +162,48 @@ export default function ManageSchemas() {
           <textarea
             value={formData.description}
             onChange={(e) => handleInputChange("description", e.target.value)}
-            className="w-full p-3 border rounded bg-gray-100 dark:bg-gray-700 dark:text-white"
+            className="w-full p-3 border rounded dark:bg-gray-700"
             rows="3"
           />
         </div>
 
         {/* ✅ Dynamic Fields for API Schema */}
-        {["headers", "queryParams", "requestBody", "responseBody", "responseCodes"].map((field) => (
+        {["headers", "query_params", "request_body", "response_body", "response_codes"].map((field) => (
           <div key={field}>
-            <h2 className="text-lg font-semibold capitalize">{field.replace(/([A-Z])/g, " $1")}</h2>
-            {formData[field]?.map((item, index) => (
+            <h2 className="text-lg font-semibold capitalize">{field.replace(/_/g, " ")}</h2>
+            {formData[field].map((item, index) => (
               <div key={index} className="flex items-center gap-2 mb-2">
-                <input type="text" placeholder="Name" value={item.name || ""} onChange={(e) => handleArrayFieldChange(field, index, "name", e.target.value)} className="w-1/3 p-2 border rounded dark:bg-gray-700" />
-                <input type="text" placeholder="Type" value={item.type || ""} onChange={(e) => handleArrayFieldChange(field, index, "type", e.target.value)} className="w-1/3 p-2 border rounded dark:bg-gray-700" />
-                <input type="text" placeholder="Description" value={item.type || ""} onChange={(e) => handleArrayFieldChange(field, index, "description", e.target.value)} className="w-1/3 p-2 border rounded dark:bg-gray-700" />
+                <input type="text" placeholder="Name" value={item.name || ""} onChange={(e) => handleArrayFieldChange(field, index, "name", e.target.value)} className="w-1/4 p-2 border rounded dark:bg-gray-700" />
+                <input type="text" placeholder="Type" value={item.type || ""} onChange={(e) => handleArrayFieldChange(field, index, "type", e.target.value)} className="w-1/4 p-2 border rounded dark:bg-gray-700" />
+                <input type="text" placeholder="Description" value={item.description || ""} onChange={(e) => handleArrayFieldChange(field, index, "description", e.target.value)} className="w-1/3 p-2 border rounded dark:bg-gray-700" />
                 <button type="button" onClick={() => removeArrayField(field, index)} className="text-red-500">Remove</button>
               </div>
             ))}
-            <button type="button" onClick={() => addArrayField(field)} className="text-blue-500">Add {field.replace(/([A-Z])/g, " $1")}</button>
+            <button type="button" onClick={() => addArrayField(field)} className="text-blue-500">Add {field.replace(/_/g, " ")}</button>
           </div>
         ))}
 
         <button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white p-3 rounded">
-          {editId ? "Update Schema" : "Add Schema"}
+          {loading ? "Saving..." : editId ? "Update Schema" : "Add Schema"}
         </button>
       </form>
 
-      {/* ✅ List of Schemas */}
-      <table className="w-full bg-white dark:bg-gray-800 rounded shadow">
+      {/* ✅ Schema List */}
+      <h2 className="text-xl font-bold mb-4">List of Schemas</h2>
+      <table className="w-full bg-white dark:bg-gray-800 border-collapse shadow-lg">
         <thead>
-          <tr>
-            <th className="p-2 text-left">Name</th>
-            <th className="p-2 text-left">Actions</th>
+          <tr className="bg-gray-200 dark:bg-gray-700">
+            <th className="p-3 text-left">Name</th>
+            <th className="p-3 text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
           {schemas.map((schema) => (
-            <tr key={schema.id}>
-              <td className="p-2">{schema.name}</td>
-              <td className="p-2 space-x-2">
-                <button onClick={() => handleEdit(schema.id)} className="bg-yellow-500 text-white px-3 py-1 rounded">Edit</button>
-                <button onClick={() => handleDelete(schema.id)} className="bg-red-500 text-white px-3 py-1 rounded">Delete</button>
+            <tr key={schema.id} className="border-t dark:border-gray-700">
+              <td className="p-3">{schema.name}</td>
+              <td className="p-3">
+                <button onClick={() => handleEdit(schema.id)} className="text-blue-500 mr-3">Edit</button>
+                <button onClick={() => handleDelete(schema.id)} className="text-red-500">Delete</button>
               </td>
             </tr>
           ))}
