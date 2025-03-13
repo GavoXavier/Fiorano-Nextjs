@@ -79,8 +79,8 @@ export default function EditAPI() {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Edit API</h1>
+    <div className="p-4 sm:p-6 bg-gray-100 min-h-screen">
+      <h1 className="text-2xl font-bold mb-4 text-center">Edit API</h1>
 
       {/* ✅ API Selection Dropdown */}
       <label className="block text-lg font-semibold">Select API to Edit:</label>
@@ -98,45 +98,69 @@ export default function EditAPI() {
       </select>
 
       {/* ✅ Show Loading Indicator */}
-      {loading && <p className="text-blue-500">Loading API details...</p>}
+      {loading && <p className="text-blue-500 text-center">Loading API details...</p>}
 
-      {/* ✅ Edit Form (Big Ass Form) */}
+      {/* ✅ Edit Form */}
       {formData && (
-        <form onSubmit={handleUpdate} className="bg-white p-6 shadow rounded">
-          {message && <p className="mb-4">{message}</p>}
+        <form onSubmit={handleUpdate} className="bg-white p-6 shadow rounded-lg max-w-3xl mx-auto">
+          {message && <p className="text-center mb-4 text-green-600">{message}</p>}
 
           {/* ✅ Basic API Info */}
-          <label className="block text-sm font-medium">API Name</label>
-          <input type="text" value={formData.name} onChange={(e) => handleInputChange("name", e.target.value)} className="w-full p-2 border rounded mb-4" required />
+          <div className="mb-4">
+            <label className="block text-sm font-medium">API Name</label>
+            <input type="text" value={formData.name} onChange={(e) => handleInputChange("name", e.target.value)} className="w-full p-2 border rounded" required />
+          </div>
 
-          <label className="block text-sm font-medium">Endpoint</label>
-          <input type="text" value={formData.endpoint} onChange={(e) => handleInputChange("endpoint", e.target.value)} className="w-full p-2 border rounded mb-4" required />
+          <div className="mb-4">
+            <label className="block text-sm font-medium">Endpoint</label>
+            <input type="text" value={formData.endpoint} onChange={(e) => handleInputChange("endpoint", e.target.value)} className="w-full p-2 border rounded" required />
+          </div>
+
+          {/* ✅ HTTP Method Dropdown */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium">HTTP Method</label>
+            <select
+              value={formData.method}
+              onChange={(e) => handleInputChange("method", e.target.value)}
+              className="w-full p-2 border rounded"
+            >
+              {["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"].map((method) => (
+                <option key={method} value={method}>{method}</option>
+              ))}
+            </select>
+          </div>
 
           {/* ✅ Headers, Query Params, Request Body */}
           {["headers", "query_params", "request_body", "response_body", "response_codes"].map((field) => (
-            <div key={field} className="mt-4">
-              <h2 className="text-lg font-semibold">{field.replace(/_/g, " ")}</h2>
+            <div key={field} className="mt-6">
+              <h2 className="text-lg font-semibold mb-2">{field.replace(/_/g, " ")}</h2>
               {formData[field].map((item, index) => (
-                <div key={index} className="flex gap-2 mb-2">
-                  <input type="text" placeholder="Name" value={item.name} onChange={(e) => handleArrayChange(field, index, "name", e.target.value)} className="w-1/3 p-2 border rounded" />
-                  <input type="text" placeholder="Type" value={item.type} onChange={(e) => handleArrayChange(field, index, "type", e.target.value)} className="w-1/3 p-2 border rounded" />
-                  <input type="text" placeholder="Description" value={item.description} onChange={(e) => handleArrayChange(field, index, "description", e.target.value)} className="w-1/3 p-2 border rounded" />
-                  <button type="button" onClick={() => removeArrayField(field, index)} className="text-red-500">Remove</button>
+                <div key={index} className="flex flex-col sm:flex-row gap-2 mb-2">
+                  <input type="text" placeholder="Name" value={item.name} onChange={(e) => handleArrayChange(field, index, "name", e.target.value)} className="w-full sm:w-1/3 p-2 border rounded" />
+                  <input type="text" placeholder="Type" value={item.type} onChange={(e) => handleArrayChange(field, index, "type", e.target.value)} className="w-full sm:w-1/3 p-2 border rounded" />
+                  <input type="text" placeholder="Description" value={item.description} onChange={(e) => handleArrayChange(field, index, "description", e.target.value)} className="w-full sm:w-1/3 p-2 border rounded" />
+                  <button type="button" onClick={() => removeArrayField(field, index)} className="text-red-500 text-sm">Remove</button>
                 </div>
               ))}
-              <button type="button" onClick={() => addArrayField(field)} className="text-blue-500">+ Add {field.replace(/_/g, " ")}</button>
+              <button type="button" onClick={() => addArrayField(field)} className="text-blue-500 text-sm">+ Add {field.replace(/_/g, " ")}</button>
             </div>
           ))}
 
           {/* ✅ JSON Fields */}
-          <label className="block text-sm font-medium mt-4">Request Example (JSON)</label>
-          <textarea value={formData.request_example || ""} onChange={(e) => handleInputChange("request_example", e.target.value)} className="w-full p-2 border rounded h-40 font-mono" placeholder="Paste JSON here..." />
+          <div className="mt-6">
+            <label className="block text-sm font-medium">Request Example (JSON)</label>
+            <textarea value={formData.request_example || ""} onChange={(e) => handleInputChange("request_example", e.target.value)} className="w-full p-2 border rounded h-32 font-mono" placeholder="Paste JSON here..." />
+          </div>
 
-          <label className="block text-sm font-medium mt-4">Response Example (JSON)</label>
-          <textarea value={formData.response_example || ""} onChange={(e) => handleInputChange("response_example", e.target.value)} className="w-full p-2 border rounded h-40 font-mono" placeholder="Paste JSON here..." />
+          <div className="mt-4">
+            <label className="block text-sm font-medium">Response Example (JSON)</label>
+            <textarea value={formData.response_example || ""} onChange={(e) => handleInputChange("response_example", e.target.value)} className="w-full p-2 border rounded h-32 font-mono" placeholder="Paste JSON here..." />
+          </div>
 
-          <label className="block text-sm font-medium mt-4">cURL Example</label>
-          <textarea value={formData.curl_example || ""} onChange={(e) => handleInputChange("curl_example", e.target.value)} className="w-full p-2 border rounded h-40 font-mono" placeholder="Paste cURL command here..." />
+          <div className="mt-4">
+            <label className="block text-sm font-medium">cURL Example</label>
+            <textarea value={formData.curl_example || ""} onChange={(e) => handleInputChange("curl_example", e.target.value)} className="w-full p-2 border rounded h-32 font-mono" placeholder="Paste cURL command here..." />
+          </div>
 
           {/* ✅ Submit Button */}
           <button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white p-3 rounded mt-6" disabled={saving}>
