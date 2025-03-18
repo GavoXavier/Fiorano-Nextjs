@@ -1,63 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function AdminDashboard() {
-  const [categories, setCategories] = useState([]); // Ensure it's always an array
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
+    console.log("🔹 Session Data:", session); // Check what NextAuth returns
+    if (status === "loading") return; // Prevent premature redirection
 
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch("/api/categories");
-      if (!response.ok) {
-        throw new Error("Failed to fetch categories");
-      }
-
-      const data = await response.json();
-
-      // ✅ Ensure data is an array before setting state
-      if (Array.isArray(data)) {
-        setCategories(data);
-      } else {
-        throw new Error("Invalid data format");
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+    if (!session) {
+      router.replace("/login");
+    } else if (session.user.role !== "admin") {
+      router.replace("/unauthorized");
     }
-  };
+  }, [session, status, router]);
 
-  if (loading) {
-    return <div className="p-6 text-center">Loading categories...</div>;
-  }
-
-  if (error) {
-    return <div className="p-6 text-center text-red-500">Error: {error}</div>;
-  }
+  if (status === "loading") return <p>Loading...</p>;
 
   return (
-    <div className="p-6 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white">
-      <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
-
-      {categories.length === 0 ? (
-        <p className="text-center text-gray-500">No categories available.</p>
-      ) : (
-        <ul className="space-y-4">
-          {categories.map((category) => (
-            <li key={category.id} className="p-4 bg-white dark:bg-gray-800 rounded shadow">
-              <h2 className="text-xl font-semibold">{category.name}</h2>
-              <p className="text-gray-600 dark:text-gray-400">{category.description}</p>
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white">
+      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      <p>Welcome, {session?.user?.username}!</p>
+      <p>Role: {session?.user?.role}</p> {/* Display user role for debugging */}
+      <button
+        onClick={() => signOut()}
+        className="mt-4 bg-red-600 hover:bg-red-800 text-white py-2 px-4 rounded"
+      >
+        Sign Out
+      </button>
     </div>
   );
 }
